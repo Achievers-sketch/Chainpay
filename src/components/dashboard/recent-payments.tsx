@@ -1,7 +1,8 @@
+'use client';
+
 import {
   ArrowUpRight,
   MoreHorizontal,
-  Plus,
 } from "lucide-react";
 import Link from "next/link";
 import {
@@ -29,59 +30,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
-
-const payments = [
-  {
-    id: "pay_1",
-    customer: "Liam Johnson",
-    email: "liam@example.com",
-    amount: "250.00",
-    currency: "USDC",
-    status: "Completed",
-    date: "2023-06-23",
-    avatar: "https://picsum.photos/seed/liam/40/40",
-  },
-  {
-    id: "pay_2",
-    customer: "Olivia Smith",
-    email: "olivia@example.com",
-    amount: "150.00",
-    currency: "ETH",
-    status: "Pending",
-    date: "2023-06-24",
-    avatar: "https://picsum.photos/seed/olivia/40/40",
-  },
-  {
-    id: "pay_3",
-    customer: "Noah Williams",
-    email: "noah@example.com",
-    amount: "350.00",
-    currency: "USDC",
-    status: "Completed",
-    date: "2023-06-25",
-    avatar: "https://picsum.photos/seed/noah/40/40",
-  },
-  {
-    id: "pay_4",
-    customer: "Emma Brown",
-    email: "emma@example.com",
-    amount: "450.00",
-    currency: "BTC",
-    status: "Failed",
-    date: "2023-06-26",
-    avatar: "https://picsum.photos/seed/emma/40/40",
-  },
-  {
-    id: "pay_5",
-    customer: "James Jones",
-    email: "james@example.com",
-    amount: "550.00",
-    currency: "USDC",
-    status: "Completed",
-    date: "2023-06-27",
-    avatar: "https://picsum.photos/seed/james/40/40",
-  },
-];
+import { useCollection, useUser, useFirestore, useMemoFirebase } from "@/firebase";
+import { collection, query, where, addDoc } from "firebase/firestore";
+import { Skeleton } from "../ui/skeleton";
 
 type StatusVariant = "default" | "secondary" | "destructive" | "outline";
 const statusVariantMap: Record<string, StatusVariant> = {
@@ -90,22 +41,100 @@ const statusVariantMap: Record<string, StatusVariant> = {
   Failed: "destructive",
 };
 
+const seedPayments = [
+    {
+      customer: "Liam Johnson",
+      email: "liam@example.com",
+      amount: "250.00",
+      currency: "USDC",
+      status: "Completed",
+      date: "2023-06-23",
+      avatar: "https://picsum.photos/seed/liam/40/40",
+    },
+    {
+      customer: "Olivia Smith",
+      email: "olivia@example.com",
+      amount: "150.00",
+      currency: "ETH",
+      status: "Pending",
+      date: "2023-06-24",
+      avatar: "https://picsum.photos/seed/olivia/40/40",
+    },
+    {
+      customer: "Noah Williams",
+      email: "noah@example.com",
+      amount: "350.00",
+      currency: "USDC",
+      status: "Completed",
+      date: "2023-06-25",
+      avatar: "https://picsum.photos/seed/noah/40/40",
+    },
+    {
+      customer: "Emma Brown",
+      email: "emma@example.com",
+      amount: "450.00",
+      currency: "BTC",
+      status: "Failed",
+      date: "2023-06-26",
+      avatar: "https://picsum.photos/seed/emma/40/40",
+    },
+    {
+      customer: "James Jones",
+      email: "james@example.com",
+      amount: "550.00",
+      currency: "USDC",
+      status: "Completed",
+      date: "2023-06-27",
+      avatar: "https://picsum.photos/seed/james/40/40",
+    },
+  ];
+
 export function RecentPayments() {
+  const { user } = useUser();
+  const firestore = useFirestore();
+
+  const paymentsQuery = useMemoFirebase(() => {
+    if (!user || !firestore) return null;
+    return query(collection(firestore, `merchants/${user.uid}/payments`));
+  }, [user, firestore]);
+  
+  const { data: payments, isLoading } = useCollection(paymentsQuery);
+
+  const seedData = async () => {
+    if (user && firestore) {
+        const paymentsCollection = collection(firestore, `merchants/${user.uid}/payments`);
+        for (const payment of seedPayments) {
+            await addDoc(paymentsCollection, {
+                ...payment,
+                merchantId: user.uid,
+                paymentDate: new Date(payment.date).toISOString(),
+            });
+        }
+    }
+  }
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center">
         <div className="grid gap-2">
           <CardTitle>Recent Payments</CardTitle>
-          <CardDescription>
-            You have made {payments.length} payments this month.
-          </CardDescription>
+          {isLoading ? (
+             <Skeleton className="h-4 w-48" />
+          ) : (
+            <CardDescription>
+                You have made {payments?.length || 0} payments this month.
+            </CardDescription>
+          )}
         </div>
-        <Button asChild size="sm" className="ml-auto gap-1 bg-accent text-accent-foreground hover:bg-accent/90">
-          <Link href="/payments">
-            View All
-            <ArrowUpRight className="h-4 w-4" />
-          </Link>
-        </Button>
+        <div className="ml-auto flex gap-2">
+            <Button onClick={seedData} size="sm" variant="outline">Seed Data</Button>
+            <Button asChild size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90">
+            <Link href="/payments">
+                View All
+                <ArrowUpRight className="h-4 w-4" />
+            </Link>
+            </Button>
+        </div>
       </CardHeader>
       <CardContent>
         <Table>
@@ -118,7 +147,30 @@ export function RecentPayments() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {payments.map((payment) => (
+            {isLoading && Array.from({ length: 5 }).map((_, i) => (
+                <TableRow key={i}>
+                    <TableCell>
+                        <div className="flex items-center gap-3">
+                            <Skeleton className="h-9 w-9 rounded-full" />
+                            <div className="grid gap-1">
+                                <Skeleton className="h-4 w-24" />
+                                <Skeleton className="h-3 w-32" />
+                            </div>
+                        </div>
+                    </TableCell>
+                    <TableCell className="text-center">
+                        <Skeleton className="h-6 w-20 mx-auto" />
+                    </TableCell>
+                    <TableCell className="text-right">
+                        <Skeleton className="h-5 w-16 ml-auto" />
+                        <Skeleton className="h-4 w-12 ml-auto mt-1" />
+                    </TableCell>
+                    <TableCell className="text-right">
+                        <Skeleton className="h-8 w-8 ml-auto" />
+                    </TableCell>
+                </TableRow>
+            ))}
+            {!isLoading && payments?.map((payment) => (
               <TableRow key={payment.id}>
                 <TableCell>
                   <div className="flex items-center gap-3">

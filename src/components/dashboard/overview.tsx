@@ -1,3 +1,4 @@
+'use client';
 import {
   Calendar as CalendarIcon,
   DollarSign,
@@ -23,8 +24,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useCollection, useUser, useFirestore, useMemoFirebase } from "@/firebase";
+import { collection, query } from "firebase/firestore";
+import { Skeleton } from "../ui/skeleton";
 
 export default function DashboardOverview() {
+  const { user } = useUser();
+  const firestore = useFirestore();
+
+  const paymentsQuery = useMemoFirebase(() => {
+    if (!user || !firestore) return null;
+    return query(collection(firestore, `merchants/${user.uid}/payments`));
+  }, [user, firestore]);
+  
+  const { data: payments, isLoading } = useCollection(paymentsQuery);
+
+  const totalPayments = payments?.length || 0;
+  const totalRevenue = payments?.reduce((acc, p) => acc + parseFloat(p.amount), 0) || 0;
+
   return (
     <div className="flex flex-col gap-8">
       <div className="flex items-center justify-between space-y-2">
@@ -60,7 +77,7 @@ export default function DashboardOverview() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">$45,231.89</div>
+            {isLoading ? <Skeleton className="h-8 w-3/4" /> : <div className="text-2xl font-bold">${totalRevenue.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>}
             <p className="text-xs text-muted-foreground">
               +20.1% from last month
             </p>
@@ -84,7 +101,7 @@ export default function DashboardOverview() {
             <Wallet className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">+12,234</div>
+            {isLoading ? <Skeleton className="h-8 w-1/2" /> : <div className="text-2xl font-bold">+{totalPayments}</div>}
             <p className="text-xs text-muted-foreground">
               +19% from last month
             </p>
