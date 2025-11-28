@@ -1,0 +1,317 @@
+{
+  "entities": {
+    "Merchant": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Merchant",
+      "type": "object",
+      "description": "Represents a merchant using the payment gateway.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Merchant entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the merchant."
+        },
+        "email": {
+          "type": "string",
+          "description": "Email address of the merchant.",
+          "format": "email"
+        },
+        "apiKey": {
+          "type": "string",
+          "description": "API key for the merchant to access the gateway."
+        },
+        "kybProfileId": {
+          "type": "string",
+          "description": "Reference to KYBProfile. (Relationship: Merchant 1:1 KYBProfile)"
+        },
+        "settlementToken": {
+          "type": "string",
+          "description": "The stablecoin or token the merchant prefers to receive settlements in (e.g., USDC address)."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "email",
+        "apiKey",
+        "kybProfileId",
+        "settlementToken"
+      ]
+    },
+    "Payment": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Payment",
+      "type": "object",
+      "description": "Represents a payment initiated through the gateway.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Payment entity."
+        },
+        "merchantId": {
+          "type": "string",
+          "description": "Reference to Merchant. (Relationship: Merchant 1:N Payment)"
+        },
+        "amount": {
+          "type": "number",
+          "description": "Amount of the payment in the specified currency."
+        },
+        "currency": {
+          "type": "string",
+          "description": "Currency of the payment (e.g., USD)."
+        },
+        "tokenId": {
+          "type": "string",
+          "description": "Reference to TokenConfig. (Relationship: TokenConfig 1:N Payment).  The token used for the payment."
+        },
+        "status": {
+          "type": "string",
+          "description": "Status of the payment (e.g., created, paid, refunded)."
+        },
+        "paymentDate": {
+          "type": "string",
+          "description": "Date and time when the payment was initiated.",
+          "format": "date-time"
+        },
+        "lockedRate": {
+          "type": "number",
+          "description": "The locked exchange rate at the time of payment."
+        },
+        "rateExpiration": {
+          "type": "string",
+          "description": "Date and time when the locked rate expires.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "merchantId",
+        "amount",
+        "currency",
+        "tokenId",
+        "status",
+        "paymentDate"
+      ]
+    },
+    "SettlementBatch": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "SettlementBatch",
+      "type": "object",
+      "description": "Represents a batch of settlements processed together.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the SettlementBatch entity."
+        },
+        "batchDate": {
+          "type": "string",
+          "description": "Date when the settlement batch was processed.",
+          "format": "date-time"
+        },
+        "totalAmount": {
+          "type": "number",
+          "description": "Total amount settled in this batch."
+        },
+        "status": {
+          "type": "string",
+          "description": "Status of the settlement batch (e.g., pending, completed)."
+        },
+        "paymentIds": {
+          "type": "array",
+          "description": "References to Payments. (Relationship: SettlementBatch 1:N Payment)",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "batchDate",
+        "totalAmount",
+        "status"
+      ]
+    },
+    "TokenConfig": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "TokenConfig",
+      "type": "object",
+      "description": "Configuration for supported tokens.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the TokenConfig entity."
+        },
+        "tokenAddress": {
+          "type": "string",
+          "description": "Contract address of the token."
+        },
+        "tokenName": {
+          "type": "string",
+          "description": "Name of the token (e.g., USDC)."
+        },
+        "tokenSymbol": {
+          "type": "string",
+          "description": "Symbol of the token (e.g., USDC)."
+        },
+        "decimals": {
+          "type": "number",
+          "description": "Number of decimal places for the token."
+        },
+        "isEnabled": {
+          "type": "boolean",
+          "description": "Indicates if the token is enabled for payments."
+        }
+      },
+      "required": [
+        "id",
+        "tokenAddress",
+        "tokenName",
+        "tokenSymbol",
+        "decimals",
+        "isEnabled"
+      ]
+    },
+    "KYBProfile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "KYBProfile",
+      "type": "object",
+      "description": "Know Your Business (KYB) profile for merchants.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the KYBProfile entity."
+        },
+        "merchantId": {
+          "type": "string",
+          "description": "Reference to Merchant. (Relationship: Merchant 1:1 KYBProfile)"
+        },
+        "status": {
+          "type": "string",
+          "description": "KYB status (e.g., pending, approved, rejected)."
+        },
+        "submittedDate": {
+          "type": "string",
+          "description": "Date when the KYB profile was submitted.",
+          "format": "date-time"
+        },
+        "approvedDate": {
+          "type": "string",
+          "description": "Date when the KYB profile was approved.",
+          "format": "date-time"
+        },
+        "companyName": {
+          "type": "string",
+          "description": "Name of the company."
+        },
+        "country": {
+          "type": "string",
+          "description": "Country of registration."
+        }
+      },
+      "required": [
+        "id",
+        "merchantId",
+        "status",
+        "submittedDate"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/merchants/{merchantId}",
+        "definition": {
+          "entityName": "Merchant",
+          "schema": {
+            "$ref": "#/backend/entities/Merchant"
+          },
+          "description": "Stores merchant information.  The merchantId is also the user's UID.",
+          "params": [
+            {
+              "name": "merchantId",
+              "description": "The unique identifier of the merchant; also the Firebase Auth UID."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/merchants/{merchantId}/payments/{paymentId}",
+        "definition": {
+          "entityName": "Payment",
+          "schema": {
+            "$ref": "#/backend/entities/Payment"
+          },
+          "description": "Stores payment information for a specific merchant. Includes denormalized merchantId for authorization independence, enabling rules to verify that the payment belongs to the merchant making the request.",
+          "params": [
+            {
+              "name": "merchantId",
+              "description": "The unique identifier of the merchant who owns the payment."
+            },
+            {
+              "name": "paymentId",
+              "description": "The unique identifier of the payment."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/settlement_batches/{settlementBatchId}",
+        "definition": {
+          "entityName": "SettlementBatch",
+          "schema": {
+            "$ref": "#/backend/entities/SettlementBatch"
+          },
+          "description": "Stores settlement batch information. No ownership, so anyone with proper permission can access.",
+          "params": [
+            {
+              "name": "settlementBatchId",
+              "description": "The unique identifier of the settlement batch."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/token_configs/{tokenId}",
+        "definition": {
+          "entityName": "TokenConfig",
+          "schema": {
+            "$ref": "#/backend/entities/TokenConfig"
+          },
+          "description": "Stores token configuration information. Public read access needed.  Supports listing all available tokens for payments (QAP).",
+          "params": [
+            {
+              "name": "tokenId",
+              "description": "The unique identifier of the token configuration."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/kyb_profiles/{kybProfileId}",
+        "definition": {
+          "entityName": "KYBProfile",
+          "schema": {
+            "$ref": "#/backend/entities/KYBProfile"
+          },
+          "description": "Stores KYB profile information.  Access controlled via the reference to the associated Merchant.  Should be readable by admins for compliance and merchants for their reference.",
+          "params": [
+            {
+              "name": "kybProfileId",
+              "description": "The unique identifier of the KYB profile."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to support ChainPay's payment gateway functionality, focusing on authorization independence, security, and scalability.  Authorization independence is achieved primarily through denormalization of merchant information, particularly in the Payment collection.  This eliminates the need for `get()` calls in security rules, allowing for atomic operations and simplifying rule logic.  Homogeneous security is maintained by segregating data based on access requirements, as well as avoiding status flags within the same collection.  \n\nQAPs (Rules Are Not Filters) are supported by using path-based ownership for merchant-owned data (e.g., payments under a merchant's ID). Token configurations are stored in a dedicated collection to enable efficient listing of available tokens.\n\nThe structure facilitates the core payment gateway features: smart contract integration, price quoting, merchant API, checkout widget, and admin/merchant dashboards. The design supports the creation, processing, and settlement of payments in a secure and auditable manner. Data clarity is achieved through explicit state modeling (using the `status` field) and predictable schema naming conventions. The database design allows for storing data related to merchants, payments, settlement batches, token configurations, and KYB profiles."
+  }
+}

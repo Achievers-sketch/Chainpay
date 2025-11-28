@@ -1,0 +1,160 @@
+/**
+ * Core Philosophy: This ruleset enforces a strict merchant-ownership model. Merchants,
+ * identified by their Firebase Auth UID, have exclusive control over their own data tree,
+ * including their profile and payment records. The rules prioritize security by default,
+ * locking down administrative collections and preventing unauthorized data access or listing.
+ *
+ * Data Structure: Merchant-specific data is hierarchically organized under
+ * `/merchants/{merchantId}`. Publicly readable configuration data, like token information,
+ * is stored in a separate top-level collection (`/token_configs`) for performance and
+ * security. Sensitive but non-hierarchical data like KYB profiles are stored in a
+ * top-level collection but secured via a denormalized `merchantId` field.
+ *
+ * Key Security Decisions:
+ * - Merchant data is strictly siloed. A merchant can never see another merchant's data.
+ * - Listing merchants is disallowed to prevent user enumeration.
+ * - Administrative collections (`settlement_batches`) are completely inaccessible to clients,
+ *   as they should only be managed by trusted backend services.
+ * - System configurations (`token_configs`) are public-read but client-immutable.
+ * - KYB profiles are create-only for merchants and become read-only upon submission to
+ *   maintain a secure compliance record. Listing is disallowed to prevent data leakage.
+ *
+ * Denormalization for Authorization: The rules rely on denormalized owner IDs (`merchantId`)
+ * on documents in top-level collections like `/kyb_profiles`. This avoids costly and slow
+ * `get()` calls, enabling fast and secure authorization checks directly within the rule.
+ * For example, a rule on `/kyb_profiles/{kybProfileId}` can check `resource.data.merchantId`
+ * without needing to read any other document.
+ *
+ * Structural Segregation: Public data (`token_configs`) is stored in a separate top-level
+ * collection from private merchant data. This is a secure and performant pattern that
+ * allows clients to safely list all available tokens without requiring complex queries
+ * or risking exposure of private information.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ------------------------------------------------------------------------
+    // Helper Functions
+    // ------------------------------------------------------------------------
+
+    /**
+     * Returns true if the user is authenticated.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * Returns true if the authenticated user's UID matches the provided userId.
+     * This is the primary function for verifying document ownership.
+     */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /**
+     * Returns true if the document being operated on already exists.
+     * CRITICAL for all update and delete operations.
+     */
+    function isExistingDoc() {
+      return resource != null;
+    }
+
+    /**
+     * A convenience function that combines an ownership check with an
+     * existence check. Used for all update and delete operations on
+     * owner-specific documents.
+     */
+    function isExistingOwner(userId) {
+      return isOwner(userId) && isExistingDoc();
+    }
+
+    /**
+     * Validates that the merchantId within a document's data is both present
+     * and matches the authenticated user's UID. Used on create operations.
+     */
+    function isCreatingOwnDoc(data) {
+      return data.merchantId == request.auth.uid;
+    }
+
+    // ------------------------------------------------------------------------
+    // Collection Rules
+    // ------------------------------------------------------------------------
+
+    /**
+     * @description Controls access to a merchant's primary profile document.
+     * @path /merchants/{merchantId}
+     * @allow (create) An authenticated user creating their own merchant profile: `auth.uid == merchantId`.
+     * @deny (get) An authenticated user trying to read another merchant's profile.
+     * @principle Restricts access to a user's own data tree and prevents user enumeration.
+     */
+    match /merchants/{merchantId} {
+      allow get: if isOwner(merchantId);
+      allow list: if false;
+      allow create: if isOwner(merchantId) && request.resource.data.id == merchantId;
+      allow update: if isExistingOwner(merchantId) && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingOwner(merchantId);
+
+      /**
+       * @description Controls access to a merchant's payment records.
+       * @path /merchants/{merchantId}/payments/{paymentId}
+       * @allow (list) A merchant listing their own payment records.
+       * @deny (create) A merchant trying to create a payment record under another merchant's account.
+       * @principle Enforces hierarchical ownership; access is inherited from the parent merchant document.
+       */
+      match /payments/{paymentId} {
+        allow get: if isOwner(merchantId);
+        allow list: if isOwner(merchantId);
+        allow create: if isOwner(merchantId) && request.resource.data.merchantId == merchantId;
+        allow update: if isExistingOwner(merchantId) && request.resource.data.merchantId == resource.data.merchantId;
+        allow delete: if isExistingOwner(merchantId);
+      }
+    }
+
+    /**
+     * @description Controls access to KYB (Know Your Business) profiles.
+     * @path /kyb_profiles/{kybProfileId}
+     * @allow (create) A merchant submitting their own KYB profile for verification.
+     * @deny (update) A merchant trying to update their profile after submission (compliance record).
+     * @principle Access is granted based on a denormalized `merchantId` field in the document, preventing data leaks.
+     */
+    match /kyb_profiles/{kybProfileId} {
+      allow get: if isOwner(resource.data.merchantId);
+      allow list: if false;
+      allow create: if isCreatingOwnDoc(request.resource.data);
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    /**
+     * @description Controls access to system-wide token configurations.
+     * @path /token_configs/{tokenId}
+     * @allow (get, list) Any user, including unauthenticated users, can read token configs.
+     * @deny (create, update, delete) No client can modify the system's token configurations.
+     * @principle Publicly readable data should be segregated and made immutable for clients.
+     */
+    match /token_configs/{tokenId} {
+      allow get: if true;
+      allow list: if true;
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    /**
+     * @description Controls access to settlement batch records. This is an admin-only collection.
+     * @path /settlement_batches/{settlementBatchId}
+     * @allow (any) No client-side operations are permitted on this collection.
+     * @deny (any) All client requests (read, write) are rejected.
+     * @principle Critical backend processes and data should be completely locked from client access.
+     */
+    match /settlement_batches/{settlementBatchId} {
+      allow get: if false;
+      allow list: if false;
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+  }
+}
