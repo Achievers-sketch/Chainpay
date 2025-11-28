@@ -44,16 +44,16 @@ export default function DashboardOverview() {
 
   return (
     <div className="flex flex-col gap-8">
-      <div className="flex items-center justify-between space-y-2">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
           <p className="text-muted-foreground">
             Here&apos;s a summary of your store&apos;s activity.
           </p>
         </div>
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2 w-full md:w-auto">
           <Select defaultValue="30d">
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger className="flex-1 md:w-[180px]">
               <CalendarIcon className="mr-2 h-4 w-4" />
               <SelectValue placeholder="Select a date range" />
             </SelectTrigger>
@@ -66,11 +66,11 @@ export default function DashboardOverview() {
           </Select>
           <Button className="bg-primary hover:bg-primary/90">
             <PlusCircle className="mr-2 h-4 w-4" />
-            Create Payment
+            <span className="hidden sm:inline">Create Payment</span>
           </Button>
         </div>
       </div>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
@@ -120,7 +120,7 @@ export default function DashboardOverview() {
           </CardContent>
         </Card>
       </div>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+      <div className="grid gap-4 lg:grid-cols-7">
         <div className="lg:col-span-4">
             <RevenueChart />
         </div>

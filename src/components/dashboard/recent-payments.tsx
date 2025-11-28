@@ -141,9 +141,9 @@ export function RecentPayments() {
           <TableHeader>
             <TableRow>
               <TableHead>Customer</TableHead>
-              <TableHead className="text-center">Status</TableHead>
+              <TableHead className="text-center hidden sm:table-cell">Status</TableHead>
               <TableHead className="text-right">Amount</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead className="text-right hidden sm:table-cell">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -158,14 +158,14 @@ export function RecentPayments() {
                             </div>
                         </div>
                     </TableCell>
-                    <TableCell className="text-center">
+                    <TableCell className="text-center hidden sm:table-cell">
                         <Skeleton className="h-6 w-20 mx-auto" />
                     </TableCell>
                     <TableCell className="text-right">
                         <Skeleton className="h-5 w-16 ml-auto" />
                         <Skeleton className="h-4 w-12 ml-auto mt-1" />
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-right hidden sm:table-cell">
                         <Skeleton className="h-8 w-8 ml-auto" />
                     </TableCell>
                 </TableRow>
@@ -186,13 +186,13 @@ export function RecentPayments() {
                     </Avatar>
                     <div className="grid gap-0.5">
                       <p className="font-medium">{payment.customer}</p>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-sm text-muted-foreground hidden sm:block">
                         {payment.email}
                       </p>
                     </div>
                   </div>
                 </TableCell>
-                <TableCell className="text-center">
+                <TableCell className="text-center hidden sm:table-cell">
                   <Badge
                     variant={statusVariantMap[payment.status] || "outline"}
                   >
@@ -201,11 +201,11 @@ export function RecentPayments() {
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="font-medium">${payment.amount}</div>
-                  <div className="text-sm text-muted-foreground">
+                  <div className="text-sm text-muted-foreground hidden sm:block">
                     {payment.currency}
                   </div>
                 </TableCell>
-                <TableCell className="text-right">
+                <TableCell className="text-right hidden sm:table-cell">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button
